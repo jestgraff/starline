@@ -29,6 +29,8 @@ class StarLineAPI:
             "Content-Type": "application/x-www-form-urlencoded"
         }
 
+        timeout = httpx.Timeout(30.0)
+        
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 url,

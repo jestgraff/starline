@@ -1,6 +1,3 @@
-import traceback
-import json
-
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
@@ -16,41 +13,67 @@ api = StarLineAPI()
 async def status_handler(message: Message):
 
     try:
-        user_data = await api.get_user_data()
+        data = await api.get_user_data()
 
-        print("\n=== USER DATA ===")
-        print(json.dumps(user_data, indent=2, ensure_ascii=False))
-
-        devices = user_data.get("devices", [])
+        devices = (
+            data["user_data"].get("devices", [])
+            + data["user_data"].get("shared_devices", [])
+        )
 
         if not devices:
-            await message.answer(
-                f"devices пустой\n\n<pre>{json.dumps(user_data, indent=2, ensure_ascii=False)}</pre>",
-                parse_mode="HTML"
-            )
+            await message.answer("Машины не найдены")
             return
 
-        device = devices[0]
+        car = devices[0]
 
-        device_id = device["device_id"]
+        alias = car.get("alias", "Автомобиль")
 
-        data = await api.get_device_data(device_id)
+        obd = car.get("obd", {})
+        common = car.get("common", {})
+        state = car.get("state", {})
+        position = car.get("position", {})
+        balance = car.get("balance", [])
 
-        print("\n=== DEVICE DATA ===")
-        print(json.dumps(data, indent=2, ensure_ascii=False))
+        mileage = obd.get("mileage", "—")
+        fuel = obd.get("fuel_litres", "—")
+
+        battery = common.get("battery", "—")
+        engine_temp = common.get("etemp", "—")
+
+        armed = "Да" if state.get("arm") else "Нет"
+        engine = "Запущен" if state.get("run") else "Остановлен"
+
+        lat = position.get("y")
+        lon = position.get("x")
+
+        sim_balance = "—"
+
+        if balance:
+            sim_balance = f'{balance[0].get("value")} ₽'
+
+        text = f"""
+🚗 <b>{alias}</b>
+
+🛡 Охрана: <b>{armed}</b>
+🔧 Двигатель: <b>{engine}</b>
+
+📍 Пробег: <b>{mileage} км</b>
+⛽ Топливо: <b>{fuel} л</b>
+
+🔋 АКБ: <b>{battery}V</b>
+🌡 Температура: <b>{engine_temp}°C</b>
+
+💰 Баланс SIM: <b>{sim_balance}</b>
+
+📌 Координаты:
+<code>{lat}, {lon}</code>
+"""
 
         await message.answer(
-            f"<pre>{json.dumps(data, indent=2, ensure_ascii=False)}</pre>",
+            text,
             parse_mode="HTML"
         )
 
     except Exception as e:
-
-        error_text = traceback.format_exc()
-
-        print(error_text)
-
-        await message.answer(
-            f"<pre>{error_text}</pre>",
-            parse_mode="HTML"
-        )
+        await message.answer(str(e))
+        raise

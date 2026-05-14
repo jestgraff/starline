@@ -15,25 +15,35 @@ class StarLineAPI:
 
     async def authenticate(self):
 
-        url = "https://id.starline.ru/apiV3/token"
+        url = "https://id.starline.ru/realms/starline/protocol/openid-connect/token"
 
         data = {
             "grant_type": "password",
             "username": STARLINE_LOGIN,
             "password": STARLINE_PASSWORD,
             "client_id": STARLINE_CLIENT_ID,
-            "client_secret": STARLINE_CLIENT_SECRET
+            "client_secret": STARLINE_CLIENT_SECRET,
+        }
+
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded"
         }
 
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, data=data)
+            response = await client.post(
+                url,
+                data=data,
+                headers=headers
+            )
+
+        print(response.text)
 
         response.raise_for_status()
 
         result = response.json()
 
         self.access_token = result["access_token"]
-        self.refresh_token = result["refresh_token"]
+        self.refresh_token = result.get("refresh_token")
 
     async def get_headers(self):
 

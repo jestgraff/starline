@@ -12,31 +12,30 @@ api = StarLineAPI()
 @router.message(Command("status"))
 async def status_handler(message: Message):
 
-    devices = await api.get_devices()
+    try:
+        user_data = await api.get_user_data()
 
-    if not devices:
-        await message.answer("Устройства не найдены")
-        return
+        devices = user_data.get("devices", [])
 
-    device = devices[0]
+        if not devices:
+            await message.answer("Устройства не найдены")
+            return
 
-    device_id = device["device_id"]
-    device_name = device.get("alias", "Автомобиль")
+        device = devices[0]
 
-    data = await api.get_device_data(device_id)
+        device_id = device["device_id"]
+        device_name = device.get("alias", "Автомобиль")
 
-    mileage = data.get("mileage", "—")
-    fuel = data.get("fuel", "—")
-    balance = data.get("balance", "—")
-    battery = data.get("battery", "—")
+        data = await api.get_device_data(device_id)
 
-    text = f"""
-🚗 {device_name}
+        # Тут структура может отличаться
+        # поэтому пока просто выводим JSON
 
-📍 Пробег: {mileage} км
-⛽ Топливо: {fuel}%
-💰 Баланс SIM: {balance} ₽
-🔋 АКБ: {battery}V
-"""
+        await message.answer(
+            f"🚗 {device_name}\n\n"
+            f"<pre>{data}</pre>",
+            parse_mode="HTML"
+        )
 
-    await message.answer(text)
+    except Exception as e:
+        await message.answer(f"Ошибка:\n<pre>{str(e)}</pre>", parse_mode="HTML")
